@@ -16,6 +16,7 @@
 // MQTT topic information
 #define FEED_TEMPERATURE MQTT_USERNAME "/feeds/inside-temp"
 #define FEED_HUMIDITY MQTT_USERNAME "/feeds/inside-humidity"
+#define FEED_TIME MQTT_USERNAME "/feeds/total-time"
 
 // How often to check (in seconds)
 #define SLEEP_TIME 59
