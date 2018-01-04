@@ -6,13 +6,15 @@
 
 float humidity;
 float temperature;   // in Fahrenheit
-int ret;
 char temp_buffer[7];
 char humidity_buffer[7];
 int val_int;
 int val_fra;
-String tmp;
 int delay_time;
+unsigned long timeIn;
+unsigned long timeOut;
+int totalTime;
+char time_buffer[7];
 
 // Initialize DHT sensor.
 DHT dht(SENSOR_PIN, SENSOR_TYPE);
@@ -60,6 +62,7 @@ void setup() {
 
 
 void loop() {
+    timeIn = millis ();
     digitalWrite (0, LOW);
   
     humidity = dht.readHumidity();
@@ -125,8 +128,23 @@ void loop() {
     }
 
     digitalWrite (0, HIGH);
+    
+    timeOut = millis ();
+    
+    totalTime = timeOut - timeIn;
+    snprintf (time_buffer, sizeof(time_buffer), "%d", totalTime);
+    
+    // Publish the humidity
+    Serial.print("\nSending totalTime (");
+    Serial.print(time_buffer);
+    Serial.print(") to ");
+    Serial.print(FEED_TIME);
+    Serial.print(": ");
+    if (! mqtt.publish(FEED_TIME, time_buffer)) {
+        Serial.println("Failed");
+    } else {
+        Serial.println("OK!");
+    }
 
     delay (delay_time);
 }
-
-
