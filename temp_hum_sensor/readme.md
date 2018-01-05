@@ -6,9 +6,11 @@
 * Be able to modify basic parameters, such as time between check, alarm thresholds, etc.) without needing to recompile and download the code.
 
 ## To Do
-* Improve timing so that the 
 * How to modify basic parameters without re-compiling and downloading the code
-* Build from scratch using ESP8266 instead of Adafruit Huzzah ESP8266 for cleaner build and maybe selling of the system?
+* Build from scratch using ESP8266 instead of Adafruit Huzzah ESP8266 for cleaner build?
+* calculate how long the stuff after the calculations to determine how long to sleep takes to make the run time more accurate
+* determine and report battery status
+* put the system to sleep to save battery
 
 ## Done
 * 
