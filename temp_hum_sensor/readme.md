@@ -11,7 +11,9 @@
 * calculate how long the stuff after the calculations to determine how long to sleep takes to make the run time more accurate
 * determine and report battery status
 * put the system to sleep to save battery
-* add to which the LED is connected in config.h and update pinModes with that parameter
+* add variable to note which pin the LED is connected to that will be "blinked" in config.h and update pinModes with that variable
+* wait longer for serial connection to come up so that all details show up on the serial connection
+* determine if connected to batter or other power
 
 ## Done
 * 
