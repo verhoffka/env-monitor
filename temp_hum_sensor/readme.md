@@ -11,6 +11,7 @@
 * calculate how long the stuff after the calculations to determine how long to sleep takes to make the run time more accurate
 * determine and report battery status
 * put the system to sleep to save battery
+* add to which the LED is connected in config.h and update pinModes with that parameter
 
 ## Done
 * 
