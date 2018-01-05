@@ -10,10 +10,11 @@ char temp_buffer[7];
 char humidity_buffer[7];
 int val_int;
 int val_fra;
-int delay_time;
-unsigned long timeIn;
-unsigned long timeOut;
-int totalTime;
+int delayTime;
+unsigned long sleepTime;
+unsigned long startTime;
+int runTimeBeforeOverflow;
+int totalRunTime;
 char time_buffer[7];
 
 // Initialize DHT sensor.
@@ -22,10 +23,9 @@ WiFiClient espClient;
 PubSubClient mqtt(espClient);
 
 void setup() {
-
     pinMode (0, OUTPUT);
 
-    delay_time = SLEEP_TIME * 1000;
+    delayTime = SLEEP_TIME * 1000;
     
     Serial.begin(115200);
     delay(100);
@@ -62,12 +62,16 @@ void setup() {
 
 
 void loop() {
-    timeIn = millis ();
+    // Turn on the LED so we know that this thing is working
     digitalWrite (0, LOW);
+    
+    
+    startTime = millis ();
   
+    // Read temperature as Fahrenheit (isFahrenheit = true)
     humidity = dht.readHumidity();
-    temperature = dht.readTemperature(true);  // Read temperature as Fahrenheit (isFahrenheit = true)
-
+    temperature = dht.readTemperature(true);
+    
     // Check if any reads failed and exit early (to try again).
     if (isnan(humidity) || isnan(temperature)) {
         Serial.println("Failed to read from DHT sensor!");
@@ -83,8 +87,9 @@ void loop() {
     Serial.print ("Hummidity: ");
     Serial.println (humidity);
 
-    // Attempt to connect
+    // Check to see if we are connected to the MQTT server, if not,re-connect
     if (! mqtt.connected ()) {
+        // we are not connected.
         if (mqtt.connect(SENSOR_NAME, MQTT_USERNAME, MQTT_PASSWORD)) {
             Serial.println("connected");
         } else {
@@ -93,6 +98,7 @@ void loop() {
         }
     }
 
+    // Calculate the temperature to one decimal place and the move convert it to a char*
     val_int = (int) temperature;   // compute the integer part of the float 
     val_fra = (int) ((temperature - (float)val_int) * 10);   // compute 1 decimal places (and convert it to int)
     snprintf (temp_buffer, sizeof(temp_buffer), "%d.%d", val_int, val_fra); 
@@ -110,7 +116,7 @@ void loop() {
         Serial.println("OK!");
     }
 
-    // Split off stuff to the left of the decimal in one variable, and the float into another
+    // Calculate the humidity to one decimal place and the move convert it to a char*
     val_int = (int) humidity;   // compute the integer part of the float 
     val_fra = (int) ((humidity - (float)val_int) * 10); 
     snprintf (humidity_buffer, sizeof(humidity_buffer), "%d.%d", val_int, val_fra);
@@ -121,30 +127,32 @@ void loop() {
     Serial.print(") to ");
     Serial.print(FEED_HUMIDITY);
     Serial.print(": ");
+    
     if (! mqtt.publish(FEED_HUMIDITY, humidity_buffer)) {
         Serial.println("Failed");
     } else {
         Serial.println("OK!");
     }
 
+    // Turn off the LED
     digitalWrite (0, HIGH);
     
-    timeOut = millis ();
-    
-    totalTime = timeOut - timeIn;
-    snprintf (time_buffer, sizeof(time_buffer), "%d", totalTime);
-    
-    // Publish the humidity
-    Serial.print("\nSending totalTime (");
-    Serial.print(time_buffer);
-    Serial.print(") to ");
-    Serial.print(FEED_TIME);
-    Serial.print(": ");
-    if (! mqtt.publish(FEED_TIME, time_buffer)) {
-        Serial.println("Failed");
+    // Figure out how much time until the next reading should be taken
+    if (millis () < startTime) {
+        // this should only be run if the millis () has overflowed (i.e. hit UL_MAX), which is about every forty-nine days
+        runTimeBeforeOverflow = UL_MAX - startTime;       // amount of time before the clock went back to zero
+        totalRunTime = runTimeBeforeOverflow + millis (); // this is the total run time of the loop up to this point
+        sleepTime = delayTime - (totalRunTime + millis ());   // And this is the amount of time to sleep before starting at the top of the loop 
     } else {
-        Serial.println("OK!");
+        sleepTime = (startTime + delayTime) - millis ();
     }
-
-    delay (delay_time);
+    
+    Serial.print ("Start Time: ");
+    Serial.println (startTime);
+    
+    Serial.print ("Sleep Time: ");
+    Serial.println (sleepTime);
+    
+    // take a nap
+    delay (sleepTime);
 }
