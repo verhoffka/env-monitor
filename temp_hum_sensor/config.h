@@ -4,13 +4,13 @@
 #define SENSOR_NAME "Indoor Temp/Humidity Sensor"
 
 // Wireless network configuration
-#define WIRELESS_NETWORK  "Valinor"
-#define WIRELESS_PASSWORD "Middle-Earth"
+#define WIRELESS_NETWORK  "XXXXXXXX"
+#define WIRELESS_PASSWORD "XXXXXXXX"
 
 // MQTT broker information
 #define MQTT_SERVER   "io.adafruit.com"
-#define MQTT_USERNAME "verhoffka"
-#define MQTT_PASSWORD "6a962ba8963428f0c7af0c79300e51d993b4788b"
+#define MQTT_USERNAME "XXXXXXXX"
+#define MQTT_PASSWORD "XXXXXXXX"
 #define MQTT_PORT     1883
 
 // MQTT topic information
