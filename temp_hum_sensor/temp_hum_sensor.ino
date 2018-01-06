@@ -17,18 +17,20 @@ int runTimeBeforeOverflow;
 int totalRunTime;
 char time_buffer[7];
 
+unsigned long UL_MAX=4294967295;
+
 // Initialize DHT sensor.
 DHT dht(SENSOR_PIN, SENSOR_TYPE);
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
 
 void setup() {
-    pinMode (0, OUTPUT);
+    pinMode (PIN_LED, OUTPUT);
 
     delayTime = SLEEP_TIME * 1000;
     
     Serial.begin(115200);
-    delay(100);
+    while (!Serial);
 
     Serial.println("Publishing data to: ");
     Serial.println(FEED_TEMPERATURE);
@@ -63,8 +65,7 @@ void setup() {
 
 void loop() {
     // Turn on the LED so we know that this thing is working
-    digitalWrite (0, LOW);
-    
+    digitalWrite (PIN_LED, LOW);
     
     startTime = millis ();
   
@@ -135,8 +136,8 @@ void loop() {
     }
 
     // Turn off the LED
-    digitalWrite (0, HIGH);
-    
+    digitalWrite (PIN_LED, HIGH);
+
     // Figure out how much time until the next reading should be taken
     if (millis () < startTime) {
         // this should only be run if the millis () has overflowed (i.e. hit UL_MAX), which is about every forty-nine days
@@ -146,12 +147,6 @@ void loop() {
     } else {
         sleepTime = (startTime + delayTime) - millis ();
     }
-    
-    Serial.print ("Start Time: ");
-    Serial.println (startTime);
-    
-    Serial.print ("Sleep Time: ");
-    Serial.println (sleepTime);
     
     // take a nap
     delay (sleepTime);
