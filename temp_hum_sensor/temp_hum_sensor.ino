@@ -145,7 +145,7 @@ void loop() {
         totalRunTime = runTimeBeforeOverflow + millis (); // this is the total run time of the loop up to this point
         sleepTime = delayTime - (totalRunTime + millis ());   // And this is the amount of time to sleep before starting at the top of the loop 
     } else {
-        sleepTime = (startTime + delayTime) - millis ();
+        sleepTime = (startTime + delayTime) - millis () - 1;
     }
     
     // take a nap
