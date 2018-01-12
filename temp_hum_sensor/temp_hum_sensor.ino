@@ -16,6 +16,7 @@ unsigned long startTime;
 int runTimeBeforeOverflow;
 int totalRunTime;
 char time_buffer[7];
+int lastStartTime;
 
 unsigned long UL_MAX=4294967295;
 
@@ -138,6 +139,10 @@ void loop() {
     // Turn off the LED
     digitalWrite (PIN_LED, HIGH);
 
+    if (lastStartTime + delayTime != startTime) {
+        startTime = lastStartTime + delayTime;
+    }
+    
     // Figure out how much time until the next reading should be taken
     if (millis () < startTime) {
         // this should only be run if the millis () has overflowed (i.e. hit UL_MAX), which is about every forty-nine days
@@ -147,6 +152,8 @@ void loop() {
     } else {
         sleepTime = (startTime + delayTime) - millis () - 1;
     }
+    
+    lastStartTime = startTime;
     
     // take a nap
     delay (sleepTime);
