@@ -65,10 +65,15 @@ void setup() {
 
 
 void loop() {
+    startTime = millis ();
+    
     // Turn on the LED so we know that this thing is working
     digitalWrite (PIN_LED, LOW);
     
-    startTime = millis ();
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", startTime);
+    Serial.print ("Start Time (beginning): ");
+    Serial.println (charBuffer);
   
     // Read temperature as Fahrenheit (isFahrenheit = true)
     humidity = dht.readHumidity();
@@ -82,8 +87,6 @@ void loop() {
 
     // print to the serial port for debugging
     Serial.println ();
-    Serial.print ("Time: ");
-    Serial.println ("");
     Serial.print ("Temperature: ");
     Serial.println (temperature);
     Serial.print ("Hummidity: ");
@@ -140,14 +143,28 @@ void loop() {
     digitalWrite (PIN_LED, HIGH);
 
     if (!justStarted && lastStartTime + delayTime != startTime) {
-        Serial.println ("justStarted is FALSE");
+        Serial.println ("justStarted is FALSE and lastStartTime + delayTime != startTime");
         startTime = lastStartTime + delayTime;
     }
 
     if (justStarted) {
         Serial.println ("justStarted is TRUE");
         justStarted = false;
+    } else {
+        Serial.println ("justStarted is FALSE");
     }
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", millis ());
+    Serial.print ("Current Time: ");
+    Serial.println (charBuffer);
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", startTime);
+    Serial.print ("Start Time (end): ");
+    Serial.println (charBuffer);
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", lastStartTime);
+    Serial.print ("Last Start Time: ");
+    Serial.println (charBuffer);
     
     // Figure out how much time until the next reading should be taken
     if (millis () < startTime) {
@@ -158,18 +175,6 @@ void loop() {
     } else {
         sleepTime = (startTime + delayTime) - millis ();
     }
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", millis ());
-    Serial.print ("Current Time: ");
-    Serial.println (charBuffer);
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", startTime);
-    Serial.print ("Start Time: ");
-    Serial.println (charBuffer);
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", lastStartTime);
-    Serial.print ("Last Start Time: ");
-    Serial.println (charBuffer);
 
     snprintf (charBuffer, sizeof(charBuffer), "%d", sleepTime);
     Serial.print ("Sleep Time: ");
