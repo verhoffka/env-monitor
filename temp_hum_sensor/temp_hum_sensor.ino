@@ -6,17 +6,16 @@
 
 float humidity;
 float temperature;   // in Fahrenheit
-char temp_buffer[7];
-char humidity_buffer[7];
+char charBuffer[11];
 int val_int;
 int val_fra;
-int delayTime;
+unsigned long delayTime;
 unsigned long sleepTime;
 unsigned long startTime;
+unsigned long lastStartTime;
 int runTimeBeforeOverflow;
 int totalRunTime;
-char time_buffer[7];
-int lastStartTime;
+boolean justStarted;
 
 unsigned long UL_MAX=4294967295;
 
@@ -29,6 +28,7 @@ void setup() {
     pinMode (PIN_LED, OUTPUT);
 
     delayTime = SLEEP_TIME * 1000;
+    justStarted = true;
     
     Serial.begin(115200);
     while (!Serial);
@@ -103,16 +103,16 @@ void loop() {
     // Calculate the temperature to one decimal place and the move convert it to a char*
     val_int = (int) temperature;   // compute the integer part of the float 
     val_fra = (int) ((temperature - (float)val_int) * 10);   // compute 1 decimal places (and convert it to int)
-    snprintf (temp_buffer, sizeof(temp_buffer), "%d.%d", val_int, val_fra); 
+    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra); 
 
     // Publish the temperature
     Serial.print("\nSending temperature (");
-    Serial.print(temp_buffer);
+    Serial.print(charBuffer);
     Serial.print(") to ");
     Serial.print(FEED_TEMPERATURE);
     Serial.print(": ");
     
-    if (! mqtt.publish(FEED_TEMPERATURE, temp_buffer)) {
+    if (! mqtt.publish(FEED_TEMPERATURE, charBuffer)) {
         Serial.println("Failed");
     } else {
         Serial.println("OK!");
@@ -121,16 +121,16 @@ void loop() {
     // Calculate the humidity to one decimal place and the move convert it to a char*
     val_int = (int) humidity;   // compute the integer part of the float 
     val_fra = (int) ((humidity - (float)val_int) * 10); 
-    snprintf (humidity_buffer, sizeof(humidity_buffer), "%d.%d", val_int, val_fra);
+    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
     
     // Publish the humidity
     Serial.print("\nSending humidity (");
-    Serial.print(humidity_buffer);
+    Serial.print(charBuffer);
     Serial.print(") to ");
     Serial.print(FEED_HUMIDITY);
     Serial.print(": ");
     
-    if (! mqtt.publish(FEED_HUMIDITY, humidity_buffer)) {
+    if (! mqtt.publish(FEED_HUMIDITY, charBuffer)) {
         Serial.println("Failed");
     } else {
         Serial.println("OK!");
@@ -139,8 +139,14 @@ void loop() {
     // Turn off the LED
     digitalWrite (PIN_LED, HIGH);
 
-    if (lastStartTime + delayTime != startTime) {
+    if (!justStarted && lastStartTime + delayTime != startTime) {
+        Serial.println ("justStarted is FALSE");
         startTime = lastStartTime + delayTime;
+    }
+
+    if (justStarted) {
+        Serial.println ("justStarted is TRUE");
+        justStarted = false;
     }
     
     // Figure out how much time until the next reading should be taken
@@ -150,8 +156,24 @@ void loop() {
         totalRunTime = runTimeBeforeOverflow + millis (); // this is the total run time of the loop up to this point
         sleepTime = delayTime - (totalRunTime + millis ());   // And this is the amount of time to sleep before starting at the top of the loop 
     } else {
-        sleepTime = (startTime + delayTime) - millis () - 1;
+        sleepTime = (startTime + delayTime) - millis ();
     }
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", millis ());
+    Serial.print ("Current Time: ");
+    Serial.println (charBuffer);
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", startTime);
+    Serial.print ("Start Time: ");
+    Serial.println (charBuffer);
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", lastStartTime);
+    Serial.print ("Last Start Time: ");
+    Serial.println (charBuffer);
+
+    snprintf (charBuffer, sizeof(charBuffer), "%d", sleepTime);
+    Serial.print ("Sleep Time: ");
+    Serial.println (charBuffer);
     
     lastStartTime = startTime;
     
