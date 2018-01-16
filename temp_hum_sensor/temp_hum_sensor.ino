@@ -3,6 +3,7 @@
 #include <DHT.h>
 #include <PubSubClient.h>
 #include "config.h"
+#include <Battery.h>
 
 float humidity;
 float temperature;   // in Fahrenheit
@@ -16,6 +17,7 @@ unsigned long lastStartTime;
 int runTimeBeforeOverflow;
 int totalRunTime;
 boolean justStarted;
+float batteryLevel;
 
 unsigned long UL_MAX=4294967295;
 
@@ -23,6 +25,7 @@ unsigned long UL_MAX=4294967295;
 DHT dht(SENSOR_PIN, SENSOR_TYPE);
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
+Battery battery (3300, 4800, A0);
 
 void setup() {
     pinMode (PIN_LED, OUTPUT);
@@ -61,6 +64,8 @@ void setup() {
     mqtt.setServer (MQTT_SERVER, MQTT_PORT);
 
     dht.begin();
+
+    battery.begin(1000, 4.64);
 }
 
 
@@ -164,7 +169,49 @@ void loop() {
 
     snprintf (charBuffer, sizeof(charBuffer), "%d", lastStartTime);
     Serial.print ("Last Start Time: ");
-    Serial.println (charBuffer);
+    Serial.println (charBuffer);  
+
+    batteryLevel = battery.level();
+
+    // Calculate the humidity to one decimal place and the move convert it to a char*
+    val_int = (int) batteryLevel;   // compute the integer part of the float 
+    val_fra = (int) ((batteryLevel - (float)val_int) * 10); 
+    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
+    
+    // Publish the humidity
+    Serial.print("\nSending Battery (");
+    Serial.print(charBuffer);
+    Serial.print(") to ");
+    Serial.print(FEED_BATTERY_LEVEL);
+    Serial.print(": ");
+    
+    if (! mqtt.publish(FEED_BATTERY_LEVEL, charBuffer)) {
+        Serial.println("Failed");
+    } else {
+        Serial.println("OK!");
+    }
+
+    batteryLevel = battery.voltage();
+
+    batteryLevel = batteryLevel / 1000;
+
+    // Calculate the humidity to one decimal place and the move convert it to a char*
+    val_int = (int) batteryLevel;   // compute the integer part of the float
+    val_fra = (int) ((batteryLevel - (float)val_int) * 100); 
+    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
+    
+    // Publish the humidity
+    Serial.print("\nSending Battery (");
+    Serial.print(charBuffer);
+    Serial.print(") to ");
+    Serial.print(FEED_BATTERY_VOLTAGE);
+    Serial.print(": ");
+    
+    if (! mqtt.publish(FEED_BATTERY_VOLTAGE, charBuffer)) {
+        Serial.println("Failed");
+    } else {
+        Serial.println("OK!");
+    }
     
     // Figure out how much time until the next reading should be taken
     if (millis () < startTime) {
