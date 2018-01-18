@@ -6,11 +6,10 @@
 #include <Battery.h>
 
 // Varialble Declarations
-float humidity;
-float temperature;   // in Fahrenheit
+float readingValue;   // in Fahrenheit
 char charBuffer[11];
-int val_int;
-int val_fra;
+int integer;
+int fraction;
 unsigned long delayTime;
 unsigned long sleepTime;
 unsigned long startTime;
@@ -18,11 +17,10 @@ unsigned long lastStartTime;
 int runTimeBeforeOverflow;
 int totalRunTime;
 boolean justStarted;
-float batteryLevel;
 unsigned long UL_MAX=4294967295;
 
 // Function Prototypes
-void publishIt (int, char *);
+void publishIt (float, char *);
 
 
 // Initialize the libraries we are using
@@ -92,49 +90,49 @@ void loop() {
     }
 
     // Read and publish the temperature
-    temperature = dht.readTemperature(true);
-    if (isnan(temperature)) {
+    readingValue = dht.readTemperature(true);
+    if (isnan(readingValue)) {
         Serial.println("Failed to read temperature from DHT sensor!");
         return;
     }
-    publishIt (temperature, FEED_TEMPERATURE);
+    publishIt (readingValue, FEED_TEMPERATURE);
 
     
     // Read and publish the humidity
-    humidity = dht.readHumidity();
-    if (isnan(humidity)) {
+    readingValue = dht.readHumidity();
+    if (isnan(readingValue)) {
         Serial.println("Failed to read humidity from DHT sensor!");
         return;
     }
-    publishIt (humidity, FEED_HUMIDITY);
+    publishIt (readingValue, FEED_HUMIDITY);
 
     
     // Read and publish the battery level
-    batteryLevel = battery.level();
-    if (isnan(batteryLevel)) {
+    readingValue = battery.level();
+    if (isnan(readingValue)) {
         Serial.println("Failed to read battery level!");
         return;
     }
-    publishIt (batteryLevel, FEED_BATTERY_LEVEL);
+    publishIt (readingValue, FEED_BATTERY_LEVEL);
 
     
     // Read and publish the battery voltage
-    batteryLevel = battery.voltage();
-    batteryLevel = batteryLevel / 1000;
-    if (isnan(batteryLevel)) {
+    readingValue = battery.voltage();
+    readingValue = readingValue / 1000;
+    if (isnan(reading)) {
         Serial.println("Failed to read battery voltage!");
         return;
     }
-    publishIt (batteryLevel, FEED_BATTERY_VOLTAGE);
+    publishIt (readingValue, FEED_BATTERY_VOLTAGE);
 
     
     // Read and publish the battery sense
-    batteryLevel = analogRead (A0);
-    if (isnan(batteryLevel)) {
+    readingValue = analogRead (A0);
+    if (isnan(readingValue)) {
         Serial.println("Failed to read Battery Sense!");
         return;
     }
-    publishIt (batteryLevel, FEED_BATTERY_SENSE);
+    publishIt (readingValue, FEED_BATTERY_SENSE);
     
     
     // Turn off the LED
@@ -167,10 +165,10 @@ void loop() {
 }
 
 
-void publishIt (int value, char * feed) {
+void publishIt (float value, char * feed) {
     // Calculate the humidity to one decimal place and the move convert it to a char*
-    val_int = (int) value;   // compute the integer part of the float 
-    val_fra = (int) ((value - (float)val_int) * 10); 
+    integer = (int) value;   // compute the integer part of the float 
+    fraction = (int) ((value - (float)val_int) * 10); 
     snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
 
     // Print some more debug info to serial in the hopes that somebody is watching...
