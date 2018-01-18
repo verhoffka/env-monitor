@@ -19,6 +19,8 @@ int totalRunTime;
 boolean justStarted;
 float batteryLevel;
 
+void publishIt (int, char *);
+
 unsigned long UL_MAX=4294967295;
 
 // Initialize DHT sensor.
@@ -26,6 +28,7 @@ DHT dht(SENSOR_PIN, SENSOR_TYPE);
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
 Battery battery (3300, 4800, A0);
+
 
 void setup() {
     pinMode (PIN_LED, OUTPUT);
@@ -74,28 +77,6 @@ void loop() {
     
     // Turn on the LED so we know that this thing is working
     digitalWrite (PIN_LED, LOW);
-    
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", startTime);
-    Serial.print ("Start Time (beginning): ");
-    Serial.println (charBuffer);
-  
-    // Read temperature as Fahrenheit (isFahrenheit = true)
-    humidity = dht.readHumidity();
-    temperature = dht.readTemperature(true);
-    
-    // Check if any reads failed and exit early (to try again).
-    if (isnan(humidity) || isnan(temperature)) {
-        Serial.println("Failed to read from DHT sensor!");
-        return;
-    }
-
-    // print to the serial port for debugging
-    Serial.println ();
-    Serial.print ("Temperature: ");
-    Serial.println (temperature);
-    Serial.print ("Hummidity: ");
-    Serial.println (humidity);
 
     // Check to see if we are connected to the MQTT server, if not,re-connect
     if (! mqtt.connected ()) {
@@ -108,110 +89,64 @@ void loop() {
         }
     }
 
-    // Calculate the temperature to one decimal place and the move convert it to a char*
-    val_int = (int) temperature;   // compute the integer part of the float 
-    val_fra = (int) ((temperature - (float)val_int) * 10);   // compute 1 decimal places (and convert it to int)
-    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra); 
-
-    // Publish the temperature
-    Serial.print("\nSending temperature (");
-    Serial.print(charBuffer);
-    Serial.print(") to ");
-    Serial.print(FEED_TEMPERATURE);
-    Serial.print(": ");
-    
-    if (! mqtt.publish(FEED_TEMPERATURE, charBuffer)) {
-        Serial.println("Failed");
-    } else {
-        Serial.println("OK!");
+    // Read and publish the temperature
+    temperature = dht.readTemperature(true);
+    if (isnan(temperature)) {
+        Serial.println("Failed to read from DHT sensor!");
+        return;
     }
+    publishIt (temperature, FEED_TEMPERATURE);
 
-    // Calculate the humidity to one decimal place and the move convert it to a char*
-    val_int = (int) humidity;   // compute the integer part of the float 
-    val_fra = (int) ((humidity - (float)val_int) * 10); 
-    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
     
-    // Publish the humidity
-    Serial.print("\nSending humidity (");
-    Serial.print(charBuffer);
-    Serial.print(") to ");
-    Serial.print(FEED_HUMIDITY);
-    Serial.print(": ");
-    
-    if (! mqtt.publish(FEED_HUMIDITY, charBuffer)) {
-        Serial.println("Failed");
-    } else {
-        Serial.println("OK!");
+    // Read and publish the humidity
+    humidity = dht.readHumidity();
+    if (isnan(humidity)) {
+        Serial.println("Failed to read from DHT sensor!");
+        return;
     }
+    publishIt (humidity, FEED_HUMIDITY);
 
+    
+    // Read and publish the battery level
+    batteryLevel = battery.level();
+    if (isnan(batteryLevel)) {
+        Serial.println("Failed to read from DHT sensor!");
+        return;
+    }
+    publishIt (batteryLevel, FEED_BATTERY_LEVEL);
+
+    
+    // Read and publish the battery voltage
+    batteryLevel = battery.voltage();
+    batteryLevel = batteryLevel / 1000;
+    if (isnan(batteryLevel)) {
+        Serial.println("Failed to read from DHT sensor!");
+        return;
+    }
+    publishIt (batteryLevel, FEED_BATTERY_LEVEL);
+
+    
+    // Read and publish the battery sense
+    Serial.print("\nBattery sense: " );
+    Serial.print(analogRead (A0));
+    if (isnan(batteryLevel)) {
+        Serial.println("Failed to read from DHT sensor!");
+        return;
+    }
+    publishIt (batteryLevel, FEED_BATTERY_LEVEL);
+    
     // Turn off the LED
     digitalWrite (PIN_LED, HIGH);
 
+    // See if we started on time, if not, set the next start time, or, if this is this first time through, just move on
     if (!justStarted && lastStartTime + delayTime != startTime) {
-        Serial.println ("justStarted is FALSE and lastStartTime + delayTime != startTime");
         startTime = lastStartTime + delayTime;
     }
 
+    // If this is our first pass, set justStarted to false, since we won't have just started anymore...
     if (justStarted) {
-        Serial.println ("justStarted is TRUE");
         justStarted = false;
-    } else {
-        Serial.println ("justStarted is FALSE");
-    }
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", millis ());
-    Serial.print ("Current Time: ");
-    Serial.println (charBuffer);
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", startTime);
-    Serial.print ("Start Time (end): ");
-    Serial.println (charBuffer);
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", lastStartTime);
-    Serial.print ("Last Start Time: ");
-    Serial.println (charBuffer);  
-
-    batteryLevel = battery.level();
-
-    // Calculate the humidity to one decimal place and the move convert it to a char*
-    val_int = (int) batteryLevel;   // compute the integer part of the float 
-    val_fra = (int) ((batteryLevel - (float)val_int) * 10); 
-    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
-    
-    // Publish the humidity
-    Serial.print("\nSending Battery (");
-    Serial.print(charBuffer);
-    Serial.print(") to ");
-    Serial.print(FEED_BATTERY_LEVEL);
-    Serial.print(": ");
-    
-    if (! mqtt.publish(FEED_BATTERY_LEVEL, charBuffer)) {
-        Serial.println("Failed");
-    } else {
-        Serial.println("OK!");
-    }
-
-    batteryLevel = battery.voltage();
-
-    batteryLevel = batteryLevel / 1000;
-
-    // Calculate the humidity to one decimal place and the move convert it to a char*
-    val_int = (int) batteryLevel;   // compute the integer part of the float
-    val_fra = (int) ((batteryLevel - (float)val_int) * 100); 
-    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
-    
-    // Publish the humidity
-    Serial.print("\nSending Battery (");
-    Serial.print(charBuffer);
-    Serial.print(") to ");
-    Serial.print(FEED_BATTERY_VOLTAGE);
-    Serial.print(": ");
-    
-    if (! mqtt.publish(FEED_BATTERY_VOLTAGE, charBuffer)) {
-        Serial.println("Failed");
-    } else {
-        Serial.println("OK!");
-    }
+    } 
     
     // Figure out how much time until the next reading should be taken
     if (millis () < startTime) {
@@ -222,13 +157,34 @@ void loop() {
     } else {
         sleepTime = (startTime + delayTime) - millis ();
     }
-
-    snprintf (charBuffer, sizeof(charBuffer), "%d", sleepTime);
-    Serial.print ("Sleep Time: ");
-    Serial.println (charBuffer);
     
     lastStartTime = startTime;
     
     // take a nap
     delay (sleepTime);
 }
+
+
+void publishIt (int value, char * feed) {
+    // Calculate the humidity to one decimal place and the move convert it to a char*
+    val_int = (int) value;   // compute the integer part of the float 
+    val_fra = (int) ((value - (float)val_int) * 10); 
+    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
+
+    // Print some more debug info to serial in the hopes that somebody is watching...
+    Serial.print("\nPublishing value (");
+    Serial.print(charBuffer);
+    Serial.print(") to ");
+    Serial.print(feed);
+    Serial.print(": ");
+    
+    // Publish the humidity
+    if (! mqtt.publish(feed, charBuffer)) {
+        Serial.println("Failed");
+    } else {
+        Serial.println("OK!");
+    }
+
+    return;
+}
+
