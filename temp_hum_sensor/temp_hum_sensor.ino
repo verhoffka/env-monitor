@@ -5,6 +5,7 @@
 #include "config.h"
 #include <Battery.h>
 
+// Varialble Declarations
 float humidity;
 float temperature;   // in Fahrenheit
 char charBuffer[11];
@@ -18,12 +19,13 @@ int runTimeBeforeOverflow;
 int totalRunTime;
 boolean justStarted;
 float batteryLevel;
-
-void publishIt (int, char *);
-
 unsigned long UL_MAX=4294967295;
 
-// Initialize DHT sensor.
+// Function Prototypes
+void publishIt (int, char *);
+
+
+// Initialize the libraries we are using
 DHT dht(SENSOR_PIN, SENSOR_TYPE);
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
@@ -78,7 +80,7 @@ void loop() {
     // Turn on the LED so we know that this thing is working
     digitalWrite (PIN_LED, LOW);
 
-    // Check to see if we are connected to the MQTT server, if not,re-connect
+    // Check to see if we are connected to the MQTT server, if not, re-connect
     if (! mqtt.connected ()) {
         // we are not connected.
         if (mqtt.connect(SENSOR_NAME, MQTT_USERNAME, MQTT_PASSWORD)) {
@@ -92,7 +94,7 @@ void loop() {
     // Read and publish the temperature
     temperature = dht.readTemperature(true);
     if (isnan(temperature)) {
-        Serial.println("Failed to read from DHT sensor!");
+        Serial.println("Failed to read temperature from DHT sensor!");
         return;
     }
     publishIt (temperature, FEED_TEMPERATURE);
@@ -101,7 +103,7 @@ void loop() {
     // Read and publish the humidity
     humidity = dht.readHumidity();
     if (isnan(humidity)) {
-        Serial.println("Failed to read from DHT sensor!");
+        Serial.println("Failed to read humidity from DHT sensor!");
         return;
     }
     publishIt (humidity, FEED_HUMIDITY);
@@ -110,7 +112,7 @@ void loop() {
     // Read and publish the battery level
     batteryLevel = battery.level();
     if (isnan(batteryLevel)) {
-        Serial.println("Failed to read from DHT sensor!");
+        Serial.println("Failed to read battery level!");
         return;
     }
     publishIt (batteryLevel, FEED_BATTERY_LEVEL);
@@ -120,20 +122,20 @@ void loop() {
     batteryLevel = battery.voltage();
     batteryLevel = batteryLevel / 1000;
     if (isnan(batteryLevel)) {
-        Serial.println("Failed to read from DHT sensor!");
+        Serial.println("Failed to read battery voltage!");
         return;
     }
-    publishIt (batteryLevel, FEED_BATTERY_LEVEL);
+    publishIt (batteryLevel, FEED_BATTERY_VOLTAGE);
 
     
     // Read and publish the battery sense
-    Serial.print("\nBattery sense: " );
-    Serial.print(analogRead (A0));
+    batteryLevel = analogRead (A0);
     if (isnan(batteryLevel)) {
-        Serial.println("Failed to read from DHT sensor!");
+        Serial.println("Failed to read Battery Sense!");
         return;
     }
-    publishIt (batteryLevel, FEED_BATTERY_LEVEL);
+    publishIt (batteryLevel, FEED_BATTERY_SENSE);
+    
     
     // Turn off the LED
     digitalWrite (PIN_LED, HIGH);
