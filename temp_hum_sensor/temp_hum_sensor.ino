@@ -7,6 +7,7 @@
 
 // Varialble Declarations
 float readingValue;   // in Fahrenheit
+int batteryLevel;
 char charBuffer[11];
 int integer;
 int fraction;
@@ -68,7 +69,7 @@ void setup() {
 
     dht.begin();
 
-    battery.begin(1000, 4.64);
+    battery.begin(1000, 4.62);
 }
 
 
@@ -108,7 +109,9 @@ void loop() {
 
     
     // Read and publish the battery level
-    readingValue = battery.level();
+    batteryLevel = analogRead (A0);
+    // convert battery level to percent
+    readingValue = map(batteryLevel, 610, 1000, 0, 100);
     if (isnan(readingValue)) {
         Serial.println("Failed to read battery level!");
         return;
@@ -117,9 +120,9 @@ void loop() {
 
     
     // Read and publish the battery voltage
-    readingValue = battery.voltage();
-    readingValue = readingValue / 1000;
-    if (isnan(reading)) {
+    readingValue = analogRead (A0);
+    readingValue = batteryLevel * 4.62;
+    if (isnan(readingValue)) {
         Serial.println("Failed to read battery voltage!");
         return;
     }
@@ -127,12 +130,11 @@ void loop() {
 
     
     // Read and publish the battery sense
-    readingValue = analogRead (A0);
-    if (isnan(readingValue)) {
+    if (isnan(batteryLevel)) {
         Serial.println("Failed to read Battery Sense!");
         return;
     }
-    publishIt (readingValue, FEED_BATTERY_SENSE);
+    publishIt (batteryLevel, FEED_BATTERY_SENSE);
     
     
     // Turn off the LED
@@ -168,8 +170,8 @@ void loop() {
 void publishIt (float value, char * feed) {
     // Calculate the humidity to one decimal place and the move convert it to a char*
     integer = (int) value;   // compute the integer part of the float 
-    fraction = (int) ((value - (float)val_int) * 10); 
-    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", val_int, val_fra);
+    fraction = (int) ((value - (float)integer) * 10); 
+    snprintf (charBuffer, sizeof(charBuffer), "%d.%d", integer, fraction);
 
     // Print some more debug info to serial in the hopes that somebody is watching...
     Serial.print("\nPublishing value (");
@@ -187,4 +189,7 @@ void publishIt (float value, char * feed) {
 
     return;
 }
+
+
+
 
