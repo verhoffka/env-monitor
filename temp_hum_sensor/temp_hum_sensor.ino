@@ -2,8 +2,8 @@
 #include <ESP8266WiFi.h>
 #include <DHT.h>
 #include <PubSubClient.h>
+#include <EEPROM.h>
 #include "config.h"
-#include <Battery.h>
 
 // Varialble Declarations
 float readingValue;   // in Fahrenheit
@@ -28,14 +28,15 @@ void publishIt (float, char *);
 DHT dht(SENSOR_PIN, SENSOR_TYPE);
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
-Battery battery (3300, 4800, A0);
 
 
 void setup() {
+    // Note the current start time
+    startTime = millis ();
+    
+    // Turn on the LED so we know that this thing is working
     pinMode (PIN_LED, OUTPUT);
-
-    delayTime = SLEEP_TIME * 1000;
-    justStarted = true;
+    digitalWrite (PIN_LED, LOW);
     
     Serial.begin(115200);
     while (!Serial);
@@ -65,21 +66,9 @@ void setup() {
     Serial.print("Gateway: ");
     Serial.println(WiFi.gatewayIP());
 
-    mqtt.setServer (MQTT_SERVER, MQTT_PORT);
-
-    dht.begin();
-
-    battery.begin(1000, 4.62);
-}
-
-
-void loop() {
-    startTime = millis ();
-    
-    // Turn on the LED so we know that this thing is working
-    digitalWrite (PIN_LED, LOW);
-
     // Check to see if we are connected to the MQTT server, if not, re-connect
+    mqtt.setServer (MQTT_SERVER, MQTT_PORT);
+    
     if (! mqtt.connected ()) {
         // we are not connected.
         if (mqtt.connect(SENSOR_NAME, MQTT_USERNAME, MQTT_PASSWORD)) {
@@ -90,6 +79,9 @@ void loop() {
         }
     }
 
+    // initialize the temp and humidity sensor
+    dht.begin();
+    
     // Read and publish the temperature
     readingValue = dht.readTemperature(true);
     if (isnan(readingValue)) {
@@ -140,30 +132,57 @@ void loop() {
     // Turn off the LED
     digitalWrite (PIN_LED, HIGH);
 
+    //EEPROM.get (0, lastStartTime);
+    //Serial.print ("Last Start Time: ");
+    //Serial.println (lastStartTime);
+    
+    Serial.print ("Start Time: ");
+    Serial.println (startTime);
+    
+    Serial.print ("Current Time: ");
+    Serial.println (millis ());
+    
+    //if (isnan(lastStartTime)) {
+    //    lastStartTime = 0;
+    //}
+
     // See if we started on time, if not, set the next start time, or, if this is this first time through, just move on
-    if (!justStarted && lastStartTime + delayTime != startTime) {
-        startTime = lastStartTime + delayTime;
-    }
+    //if (!justStarted && lastStartTime + delayTime != startTime) {
+    //    startTime = lastStartTime + delayTime;
+    //}
 
     // If this is our first pass, set justStarted to false, since we won't have just started anymore...
-    if (justStarted) {
-        justStarted = false;
-    } 
+    //if (justStarted) {
+    //    justStarted = false;
+    //} 
     
     // Figure out how much time until the next reading should be taken
-    if (millis () < startTime) {
+    //if (millis () < startTime) {
         // this should only be run if the millis () has overflowed (i.e. hit UL_MAX), which is about every forty-nine days
-        runTimeBeforeOverflow = UL_MAX - startTime;       // amount of time before the clock went back to zero
-        totalRunTime = runTimeBeforeOverflow + millis (); // this is the total run time of the loop up to this point
-        sleepTime = delayTime - (totalRunTime + millis ());   // And this is the amount of time to sleep before starting at the top of the loop 
-    } else {
-        sleepTime = (startTime + delayTime) - millis ();
-    }
+    //    runTimeBeforeOverflow = UL_MAX - startTime;       // amount of time before the clock went back to zero
+    //    totalRunTime = runTimeBeforeOverflow + millis (); // this is the total run time of the loop up to this point
+    //    sleepTime = delayTime - (totalRunTime + millis ());   // And this is the amount of time to sleep before starting at the top of the loop 
+    //} else {
+    //    sleepTime = (startTime + delayTime) - millis ();
+    //}
     
-    lastStartTime = startTime;
+    //lastStartTime = startTime;
+
+    //EEPROM.put (0, lastStartTime);
+
+    sleepTime = ((SLEEP_TIME * 1000) - millis ()) * 1000;
     
-    // take a nap
-    delay (sleepTime);
+
+    Serial.print ("Sleep Time: ");
+    Serial.println (sleepTime);
+    
+    
+    // Go to Sleep
+    ESP.deepSleep (sleepTime);
+}
+
+
+void loop() {
 }
 
 
